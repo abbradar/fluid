@@ -1,5 +1,6 @@
 ﻿using Fluid.Ast;
 using Fluid.Parser;
+using Parlot;
 using Parlot.Fluent;
 using System;
 using System.Collections.Generic;
@@ -15,19 +16,20 @@ namespace Fluid
         {
             var context = new FluidParseContext(template);
 
-            var success = parser.Grammar.TryParse(context, out var statements, out var parlotError);
-
-            if (parlotError != null)
+            try
             {
-                throw new ParseException($"{parlotError.Message} at {parlotError.Position}");
+                var localResult = new ParseResult<List<Statement>>();
+                var success = parser.Grammar.Parse(context, ref localResult);
+                if (!success)
+                {
+                    return null;
+                }
+                return new FluidTemplate(localResult.Value);
             }
-
-            if (!success)
+            catch (Parlot.ParseException e)
             {
-                return null;
+                throw new ParseException($"{e.Message} at {e.Position}", e);
             }
-
-            return new FluidTemplate(statements);
         }
 
         public static bool TryParse(this FluidParser parser, string template, out IFluidTemplate result, out string error)
